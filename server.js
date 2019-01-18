@@ -90,16 +90,97 @@ server.route('/api/cohorts/:id')
         }
     });
 
-// students
-
-// lists all students
-server.get('/api/students', async (req, res) => {
+server.get('/api/cohorts/:id/students', async (req, res) => {
+    const { id } = req.params;
     try {
-        const cohorts = await db.select().from('students');
-        res.status(200).json(cohorts);
+        const students = await db.select().from('students').where('cohort_id', id);
+        res.status(200).json(students);
     } catch (err) {
         errorHandler(err);
     }
 });
+
+// students
+
+// lists all students
+server.route('/api/students')
+    .get(async (req, res) => {
+        try {
+            const cohorts = await db.select().from('students');
+            res.status(200).json(cohorts);
+        } catch (err) {
+            errorHandler(err);
+        }
+    })
+    .post(async (req, res) => {
+        try {
+            const newStudentId = await db.insert(req.body).into('students');
+            res.status(201).json(newStudentId);
+        } catch (err) {
+            errorHandler(err);
+        }
+    });
+
+server.route('/api/students/:id')
+    .get(async (req, res) => {
+        const { id } = req.params;
+        try {
+            const student = await db.select().from('students').where({ id });
+            if (student.length) {
+                res.status(200).json({
+                    message: 'Student found'
+                });
+            } else {
+                res.status(404).json({
+                    message: 'Sorry, ths student with this ID could not be found.'
+                });
+            }
+        } catch (err) {
+            errorHandler(err);
+        }
+    })
+    .put(async (req, res) => {
+        const { id } = req.params;
+        const { name } = req.body;
+        if (name) {
+            try {
+                const student = await db.select().where({ id });
+                if (student.length) {
+                    const changeCount = await db.update({ name }).from('students').where({ id });
+                    res.status(201).json({
+                        message: 'Successfully updated.'
+                    });
+                } else {
+                    res.status(404).json({
+                        message: 'Sorry, the student with this ID could not be found.'
+                    });
+                }
+            } catch (err) {
+                errorHandler(err);
+            }
+        } else {
+            res.status(400).json({
+                message: 'Sorry, please enter a valid student name.'
+            });
+        }
+    })
+    .delete(async (req, res) => {
+        const { id } = req.params;
+        try {
+            const student = await db.select().from('students').where({ id });
+            if (student.length) {
+                db.delete().from('students').where({ id });
+                res.status(201).json({
+                    message: 'Student deleted.'
+                });
+            } else {
+                res.status(404).json({
+                    message: 'Sorry, the student with this ID was not found.'
+                });
+            }            
+        } catch (err) {
+            errorHandler(err);
+        }
+    });
 
 module.exports = server;
